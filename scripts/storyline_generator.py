@@ -10,10 +10,8 @@ def generate_storyline(user_prompt, callback):
         try:
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Generate a VERY short, one-paragraph game story."},
-                    {"role": "user", "content": f"Create a quick adventure story about {user_prompt} requiring if-else logic."}
-                ]
+                messages=[{"role": "system", "content": "Generate a VERY short, one-paragraph game story."},
+                          {"role": "user", "content": f"Create a quick adventure story about {user_prompt} requiring if-else logic."}]
             )
             
             story = response.choices[0].message.content.strip()
@@ -26,21 +24,18 @@ def generate_storyline(user_prompt, callback):
     import threading
     threading.Thread(target=run).start()
 
-
 def generate_map_from_story(story, callback):
     """Generate path & obstacle coordinates based on the story."""
     def run():
         try:
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "Generate coordinates for a 2D game map based on the story."},
-                    {"role": "user", "content": f"Using this story: '{story}', generate a JSON output with:"
-                                                 f"1. 'start': (x, y) starting position."
-                                                 f"2. 'paths': List of (x, y) positions forming a valid path."
-                                                 f"3. 'obstacles': List of (x, y) positions for obstacles."
-                                                 f"Ensure paths connect logically and obstacles make sense. Use as much of the available space as possible."}
-                ]
+                messages=[{"role": "system", "content": "Generate coordinates for a 2D game map based on the story."},
+                          {"role": "user", "content": f"Using this story: '{story}', generate a JSON output with:" 
+                                                    f"1. 'start': (x, y) starting position." 
+                                                    f"2. 'paths': List of (x, y) positions forming a valid path."
+                                                    f"3. 'obstacles': List of (x, y) positions for obstacles."
+                                                    f"Ensure paths connect logically and obstacles make sense. Use as much of the available space as possible."}]
             )
             
             ai_response = response.choices[0].message.content.strip()

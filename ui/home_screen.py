@@ -9,7 +9,7 @@ class HomeScreen:
         self.stage = "prompt"
         self.user_prompt = ""
         self.storyline = None
-        self.map_data = None
+        self.map_data = {}  # Initialize map_data as an empty dictionary
         self.game_start = False
 
         # UI Elements
@@ -108,7 +108,34 @@ class HomeScreen:
 
     def set_map_data(self, map_data):
         """Receive AI-generated map data and transition to the game."""
-        self.map_data = map_data
+        if map_data is None:
+            print("AI map generation failed. Using default map.")
+            map_data = {
+                "start": (1, 1),
+                "paths": [(2, 1), (3, 1), (4, 1)],
+                "obstacles": [(3, 2), (5, 1)]
+            }
+
+        try:
+            # Ensure the map data (start, goal, paths, obstacles) is properly formatted as tuples
+            if isinstance(map_data.get("start"), tuple):
+                self.map_data["start"] = map_data["start"]
+
+            if isinstance(map_data.get("goal"), tuple):
+                self.map_data["goal"] = map_data["goal"]
+
+            if isinstance(map_data.get("paths"), list):
+                # Ensure paths are in (x, y) tuple format
+                self.map_data["paths"] = map_data["paths"]
+
+            if isinstance(map_data.get("obstacles"), list):
+                # Ensure obstacles are in (x, y) tuple format
+                self.map_data["obstacles"] = map_data["obstacles"]
+
+        except KeyError as e:
+            print(f"KeyError: Missing data in map_data - {e}")
+            return
+
         self.start_game()  # Directly move to game when map is ready
 
     def start_game(self):
