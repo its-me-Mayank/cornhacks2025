@@ -4,13 +4,14 @@ from scripts.map_generator import MapGenerator
 from scripts.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
 class Game:
-    def __init__(self, screen, theme):
+    def __init__(self, screen, theme, storyline):
         self.screen = screen
         self.theme = theme
+        self.storyline = storyline  # Store the storyline
         self.running = True
 
-        # Initialize Map and AI Terminal
-        self.map = MapGenerator()
+        # Pass the storyline when creating the map
+        self.map = MapGenerator(self.storyline)
         self.terminal = AITerminal("if-else")
 
     def run(self):
