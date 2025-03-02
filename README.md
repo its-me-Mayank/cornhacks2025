@@ -8,10 +8,9 @@ Learning Focused: In each challenge, players must write solutions using if-else 
 Player Progression: The player character moves through the map, overcoming obstacles by solving coding challenges that help reinforce programming concepts.
 Technologies Used
 Pygame: A Python library used for creating the graphical interface and animations.
-OpenAI GPT-3: Powers the backend for generating dynamic content, including the storyline and map based on user input.
+OpenAI GPT-4: Powers the backend for generating dynamic content, including the storyline and map based on user input.
 Python: Main programming language used for the game logic and user interaction.
-Screenshots
-[Insert relevant screenshots here]
+
 
 Installation
 To run CodeRush, you'll need to have Python installed along with some required libraries. Follow the steps below to set it up:
