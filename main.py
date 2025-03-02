@@ -1,11 +1,11 @@
 import os
-os.environ["SDL_AUDIODRIVER"] = "dummy"  # Prevents ALSA errors
-
 import pygame
 import sys
 from ui.home_screen import HomeScreen
 from scripts.game import Game
 
+# Ensure Pygame doesn't throw audio errors in headless environments
+os.environ["SDL_AUDIODRIVER"] = "dummy"
 
 # Initialize Pygame
 pygame.init()
@@ -13,12 +13,11 @@ pygame.init()
 # Game Settings
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("AI Pac-Man Learning Game")
+pygame.display.set_caption("AI-Powered Learning Game")
 
-# Main Function
 def main():
     clock = pygame.time.Clock()
-    
+
     # Start with Home Screen
     home_screen = HomeScreen(screen)
     game = None
@@ -46,6 +45,5 @@ def main():
     pygame.quit()
     sys.exit()
 
-# Run the game
 if __name__ == "__main__":
     main()

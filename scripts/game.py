@@ -53,9 +53,7 @@ class Game:
 
     def can_move(self, x, y):
         """Check if player can move to the given position"""
-        if self.map_data[y][x] == 0:  # 0 means open space
-            return True
-        return False
+        return self.map_data[y][x] == 0  # 0 means open space
 
     def draw_map(self):
         """Draws the game map"""
