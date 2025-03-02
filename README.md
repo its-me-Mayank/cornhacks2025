@@ -1,4 +1,6 @@
-CodeRush: A Fun and Educational 2D Arcade Game for Learning to Code
+CodeRush
+
+
 CodeRush is an interactive 2D arcade game designed to make learning to code more engaging and fun. Based on a user-generated prompt, the game creates an adventure where players navigate through obstacles and paths, learning programming concepts along the way. The game integrates code logic challenges, where the player must use if-else statements to overcome obstacles, providing both a fun and educational experience.
 
 Features
