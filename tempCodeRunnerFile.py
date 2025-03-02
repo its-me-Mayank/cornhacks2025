@@ -3,9 +3,8 @@ import pygame
 import sys
 from ui.home_screen import HomeScreen
 from scripts.game import Game
-from scripts.cutscene import Cutscene  # Ensures cutscene runs before the game
 
-# Prevents Pygame audio errors in unsupported environments
+# Ensure Pygame doesn't throw audio errors in headless environments
 os.environ["SDL_AUDIODRIVER"] = "dummy"
 
 # Initialize Pygame
@@ -22,7 +21,6 @@ def main():
     # Start with Home Screen
     home_screen = HomeScreen(screen)
     game = None
-    cutscene_played = False  # Ensure cutscene plays only once
 
     running = True
     while running:
@@ -30,16 +28,11 @@ def main():
 
         if home_screen.active:
             home_screen.run()
-            if home_screen.game_start and not cutscene_played:
-                # Show Cutscene Before Game Starts
-                cutscene = Cutscene(screen, home_screen.selected_theme)
-                cutscene.show()
-                cutscene_played = True  # Mark cutscene as played
-
-                # Start Game After Cutscene
+            if home_screen.game_start:
+                # Load game with AI-generated theme
                 game = Game(screen, home_screen.selected_theme)
                 home_screen.active = False
-        elif game:
+        else:
             game.run()
 
         for event in pygame.event.get():
