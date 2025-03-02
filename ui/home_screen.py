@@ -1,10 +1,7 @@
 import pygame
-import random
 import openai
-import requests
-from io import BytesIO
-import time  # To add a delay for image generation
 from scripts.settings import SCREEN_WIDTH, SCREEN_HEIGHT, OPENAI_API_KEY
+from scripts.storyline_generator import generate_storyline
 
 # Initialize OpenAI API
 openai.api_key = OPENAI_API_KEY
@@ -13,29 +10,22 @@ class HomeScreen:
     def __init__(self, screen):
         self.screen = screen
         self.active = True
-        self.stage = "main"  # "main" -> first screen, "theme_select" -> theme input
-        self.selected_theme = ""
-        self.game_start = False
-        self.theme_image = None
+        self.stage = "prompt"  # Stages: prompt -> storyline -> game
+        self.user_prompt = ""
         self.storyline = ""
-        self.waiting_for_image = False  # New flag to wait for image
+        self.game_start = False
 
         # Fonts
-        self.title_font = pygame.font.Font(None, 80)  # Large font for "Hello"
-        self.button_font = pygame.font.Font(None, 40)
-        self.input_font = pygame.font.Font(None, 24)
+        self.title_font = pygame.font.Font(None, 60)
+        self.button_font = pygame.font.Font(None, 35)
+        self.input_font = pygame.font.Font(None, 28)
 
         # Buttons
         self.start_button = pygame.Rect(SCREEN_WIDTH // 2 - 100, 300, 200, 60)
-        self.prompt_input_box = pygame.Rect(SCREEN_WIDTH // 2 - 150, 250, 300, 40)
-        self.inspire_button = pygame.Rect(SCREEN_WIDTH // 2 - 100, 320, 200, 50)
-        self.confirm_button = pygame.Rect(SCREEN_WIDTH // 2 - 100, 400, 200, 50)
+        self.next_button = pygame.Rect(SCREEN_WIDTH // 2 - 100, 450, 200, 60)
 
-        # User Input
-        self.input_text = ""
-
-    def draw_text(self, text, font, x, y, color=(255, 255, 255), max_width=500, max_lines=5):
-        """Helper function to render text within a box with word wrapping and line limits."""
+    def draw_text(self, text, font, x, y, color=(255, 255, 255), max_width=600):
+        """Helper function to wrap text in a box."""
         words = text.split(" ")
         lines = []
         current_line = ""
@@ -46,51 +36,33 @@ class HomeScreen:
             else:
                 lines.append(current_line)
                 current_line = word + " "
-                if len(lines) >= max_lines:
-                    break  # Stop adding lines when max_lines is reached
 
         lines.append(current_line)
 
         y_offset = 0
-        for line in lines[:max_lines]:  # Only render up to max_lines
+        for line in lines:
             text_surface = font.render(line, True, color)
             self.screen.blit(text_surface, (x, y + y_offset))
             y_offset += font.get_height()
 
     def run(self):
-        """Draws the home screen UI, including text, buttons, AI-generated images, and storyline."""
-        self.screen.fill((20, 20, 20))  # Dark background
+        """Draws the home screen UI with different stages."""
+        self.screen.fill((20, 20, 20))
 
-        if self.stage == "main":
-            # Show "Hello" text
-            self.draw_text("Hello!", self.title_font, SCREEN_WIDTH // 2 - 100, 100, (255, 215, 0))
+        if self.stage == "prompt":
+            self.draw_text("Enter a Theme:", self.title_font, SCREEN_WIDTH // 2 - 150, 100)
+            pygame.draw.rect(self.screen, (50, 50, 50), (SCREEN_WIDTH // 2 - 150, 250, 300, 40))
+            self.draw_text(self.user_prompt, self.input_font, SCREEN_WIDTH // 2 - 140, 260)
 
-            # Start button
             pygame.draw.rect(self.screen, (100, 255, 100), self.start_button)
             self.draw_text("Start", self.button_font, SCREEN_WIDTH // 2 - 40, 315)
 
-        elif self.stage == "theme_select":
-            # Input box for custom theme
-            pygame.draw.rect(self.screen, (50, 50, 50), self.prompt_input_box)
-            self.draw_text(self.input_text, self.input_font, self.prompt_input_box.x + 10, self.prompt_input_box.y + 10)
+        elif self.stage == "storyline":
+            self.draw_text("Storyline:", self.title_font, SCREEN_WIDTH // 2 - 100, 100)
+            self.draw_text(self.storyline, self.input_font, 100, 200, max_width=600)
 
-            # "Inspire Me" button
-            pygame.draw.rect(self.screen, (100, 100, 255), self.inspire_button)
-            self.draw_text("Inspire Me", self.button_font, SCREEN_WIDTH // 2 - 70, 335)
-
-            # Confirm button
-            pygame.draw.rect(self.screen, (255, 100, 100), self.confirm_button)
-            self.draw_text("Confirm", self.button_font, SCREEN_WIDTH // 2 - 50, 415)
-
-            # Show loading text while waiting for AI image
-            if self.waiting_for_image:
-                self.draw_text("Generating image...", self.input_font, SCREEN_WIDTH // 2 - 80, 100, (255, 255, 255))
-            elif self.theme_image:
-                self.screen.blit(self.theme_image, (SCREEN_WIDTH // 2 - 128, 100))  # Adjusted position
-
-            # Display AI-generated storyline inside a limited box
-            if self.storyline:
-                self.draw_text(self.storyline, self.input_font, 50, 450, (200, 200, 200), max_width=700, max_lines=5)
+            pygame.draw.rect(self.screen, (255, 100, 100), self.next_button)
+            self.draw_text("Next", self.button_font, SCREEN_WIDTH // 2 - 40, 460)
 
         self.handle_events()
 
@@ -101,73 +73,24 @@ class HomeScreen:
                 pygame.quit()
                 exit()
             elif event.type == pygame.KEYDOWN:
-                if self.stage == "theme_select":
+                if self.stage == "prompt":
                     if event.key == pygame.K_RETURN:
-                        self.start_game()
+                        self.generate_story()
                     elif event.key == pygame.K_BACKSPACE:
-                        self.input_text = self.input_text[:-1]
+                        self.user_prompt = self.user_prompt[:-1]
                     else:
-                        self.input_text += event.unicode
+                        self.user_prompt += event.unicode
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                self.handle_mouse_click(event.pos)
+                if self.stage == "prompt" and self.start_button.collidepoint(event.pos):
+                    self.generate_story()
+                elif self.stage == "storyline" and self.next_button.collidepoint(event.pos):
+                    self.start_game()
 
-    def handle_mouse_click(self, position):
-        """Handles mouse clicks on buttons."""
-        if self.stage == "main" and self.start_button.collidepoint(position):
-            self.stage = "theme_select"
-        elif self.stage == "theme_select":
-            if self.inspire_button.collidepoint(position):
-                self.selected_theme = self.generate_random_theme()
-                self.storyline = self.generate_storyline(self.selected_theme)
-                self.theme_image = None  # Reset image before generating a new one
-                self.waiting_for_image = True  # Show "Generating image..." text
-                pygame.display.flip()
-                self.theme_image = self.generate_ai_image(self.selected_theme)
-                self.waiting_for_image = False  # Remove "Generating image..." text
-            elif self.confirm_button.collidepoint(position):
-                self.start_game()
-
-    def generate_random_theme(self):
-        """Randomly selects a thematic pair for the game setting."""
-        themes = [
-            "Hero & Monster", "King & Queen", "Husband & Wife", "Detective & Criminal",
-            "Knight & Dragon", "Alien & Astronaut", "Pirate & Treasure", "Time Traveler & Dinosaur",
-            "Angel & Demon", "Robot & Human", "Spy & Hacker", "Cat & Mouse",
-            "Scientist & Experiment", "Magician & Apprentice", "Doctor & Patient"
-        ]
-        return random.choice(themes)
-
-    def generate_storyline(self, theme):
-        """Uses AI to generate a short storyline based on the selected theme."""
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{"role": "system", "content": f"Generate a short, engaging game storyline where players learn coding concepts. The theme is {theme}."}]
-            )
-            return response["choices"][0]["message"]["content"]
-        except Exception as e:
-            print(f"AI Storyline Error: {e}")
-            return f"A thrilling adventure involving {theme}!"
-
-    def generate_ai_image(self, theme):
-        """Uses OpenAI API to generate an image based on the theme, with a lower quality option for faster loading."""
-        try:
-            response = openai.Image.create(
-                prompt=f"A simple, cartoon-style image of {theme}.",
-                n=1,
-                size="128x128"  # Lower quality for faster loading
-            )
-            image_url = response["data"][0]["url"]
-
-            # Download and convert the image for Pygame
-            image_response = requests.get(image_url)
-            image_data = BytesIO(image_response.content)
-            return pygame.image.load(image_data)
-        except Exception as e:
-            print(f"AI Image Error: {e}")
-            return None  # Return None if image generation fails
+    def generate_story(self):
+        """Generate AI-based storyline from user input."""
+        self.storyline = generate_storyline(self.user_prompt)
+        self.stage = "storyline"
 
     def start_game(self):
-        """Saves selected theme and moves to the game scene."""
-        self.selected_theme = self.input_text if self.input_text else "Classic Pac-Man"
+        """Move to game stage."""
         self.game_start = True

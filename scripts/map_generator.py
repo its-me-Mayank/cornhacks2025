@@ -1,47 +1,37 @@
+import pygame
 import random
-import openai
-from scripts.settings import MAP_WIDTH, MAP_HEIGHT, OPENAI_API_KEY
+from scripts.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
-# Initialize OpenAI API
-openai.api_key = OPENAI_API_KEY
+TILE_SIZE = 40  # Size of each tile
+MAP_WIDTH = SCREEN_WIDTH // TILE_SIZE
+MAP_HEIGHT = (SCREEN_HEIGHT - 150) // TILE_SIZE  # Leave space for the terminal
 
 class MapGenerator:
-    def __init__(self, theme):
-        self.theme = theme
+    def __init__(self):
+        self.map = self.generate_map()
 
     def generate_map(self):
-        """Generates a simple 2D grid-based map based on the theme."""
-        map_data = [[1 for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)]  # Default: Walls everywhere
+        """Generates a simple grid-based map."""
+        generated_map = []
+        for y in range(MAP_HEIGHT):
+            row = []
+            for x in range(MAP_WIDTH):
+                if random.random() < 0.1:  # Random walls (10% chance)
+                    row.append(1)  # Wall
+                else:
+                    row.append(0)  # Path
+            generated_map.append(row)
 
-        # AI can suggest patterns (if time allows)
-        ai_suggestion = self.get_ai_map_suggestion()
+        # Ensure start and end positions are walkable
+        generated_map[1][1] = 0  # Start position
+        generated_map[MAP_HEIGHT - 2][MAP_WIDTH - 2] = 0  # End position
+        return generated_map
 
-        # Carve out a simple path for the player
-        start_x, start_y = 1, 1
-        map_data[start_y][start_x] = 0  # Open space
-        for _ in range((MAP_WIDTH * MAP_HEIGHT) // 3):  # Create open paths
-            direction = random.choice(["UP", "DOWN", "LEFT", "RIGHT"])
-            if direction == "UP" and start_y > 1:
-                start_y -= 1
-            elif direction == "DOWN" and start_y < MAP_HEIGHT - 2:
-                start_y += 1
-            elif direction == "LEFT" and start_x > 1:
-                start_x -= 1
-            elif direction == "RIGHT" and start_x < MAP_WIDTH - 2:
-                start_x += 1
-            map_data[start_y][start_x] = 0  # Mark as walkable path
-
-        return map_data
-
-    def get_ai_map_suggestion(self):
-        """Uses OpenAI to generate a custom map pattern based on the theme."""
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{"role": "system", "content": f"Generate a simple 2D map pattern for a Pac-Man style game with theme: {self.theme}"}]
-            )
-            return response["choices"][0]["message"]["content"]
-        except Exception as e:
-            print(f"AI Error: {e}")
-            return "Default maze layout"
-
+    def draw(self, screen):
+        """Draws the map on the screen."""
+        for y in range(MAP_HEIGHT):
+            for x in range(MAP_WIDTH):
+                if self.map[y][x] == 1:
+                    pygame.draw.rect(screen, (100, 100, 100), (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))  # Walls
+                else:
+                    pygame.draw.rect(screen, (50, 50, 50), (x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE))  # Paths
