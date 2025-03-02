@@ -1,5 +1,5 @@
 import pygame
-from scripts.storyline_generator import generate_storyline_and_map
+from scripts.storyline_generator import generate_storyline, generate_map_from_story
 from scripts.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
 class HomeScreen:
@@ -9,7 +9,7 @@ class HomeScreen:
         self.stage = "prompt"
         self.user_prompt = ""
         self.storyline = None
-        self.map_data = None  # Store AI-generated map data
+        self.map_data = None
         self.game_start = False
 
         # UI Elements
@@ -19,6 +19,27 @@ class HomeScreen:
 
         self.start_button = pygame.Rect(SCREEN_WIDTH // 2 - 100, 300, 200, 60)
         self.next_button = pygame.Rect(SCREEN_WIDTH // 2 - 100, 450, 200, 60)
+
+    def draw_text(self, text, font, x, y, color=(255, 255, 255), max_width=600):
+        """Helper function to render text with word wrapping."""
+        words = text.split(" ")
+        lines = []
+        current_line = ""
+
+        for word in words:
+            if font.size(current_line + word)[0] < max_width:
+                current_line += word + " "
+            else:
+                lines.append(current_line)
+                current_line = word + " "
+
+        lines.append(current_line)
+
+        y_offset = 0
+        for line in lines:
+            text_surface = font.render(line, True, color)
+            self.screen.blit(text_surface, (x, y + y_offset))
+            y_offset += font.get_height()
 
     def run(self):
         """Handles the home screen UI based on the current stage."""
@@ -42,28 +63,10 @@ class HomeScreen:
             pygame.draw.rect(self.screen, (255, 100, 100), self.next_button)
             self.draw_text("Next", self.button_font, SCREEN_WIDTH // 2 - 40, 460)
 
+        elif self.stage == "map_generating":
+            self.draw_text("Generating Map...", self.title_font, SCREEN_WIDTH // 2 - 200, 250)
+
         self.handle_events()
-
-    def draw_text(self, text, font, x, y, color=(255, 255, 255), max_width=600):
-        """Helper function to render text with word wrapping."""
-        words = text.split(" ")
-        lines = []
-        current_line = ""
-
-        for word in words:
-            if font.size(current_line + word)[0] < max_width:
-                current_line += word + " "
-            else:
-                lines.append(current_line)
-                current_line = word + " "
-
-        lines.append(current_line)
-
-        y_offset = 0
-        for line in lines:
-            text_surface = font.render(line, True, color)
-            self.screen.blit(text_surface, (x, y + y_offset))
-            y_offset += font.get_height()
 
     def handle_events(self):
         """Handles user interactions."""
@@ -83,22 +86,31 @@ class HomeScreen:
                 if self.stage == "prompt" and self.start_button.collidepoint(event.pos):
                     self.start_story_generation()
                 elif self.stage == "storyline" and self.next_button.collidepoint(event.pos):
-                    self.start_game()
+                    self.start_map_generation()
 
     def start_story_generation(self):
-        """Fetch AI-generated story & map only once."""
-        if self.storyline is None:  # Prevent multiple calls
+        """Fetch AI-generated story first."""
+        if self.storyline is None:
             self.stage = "waiting"
-            generate_storyline_and_map(self.user_prompt, self.set_storyline_and_map)
+            generate_storyline(self.user_prompt, self.set_storyline)
         else:
-            self.stage = "storyline"  # If already fetched, show it
+            self.stage = "storyline"
 
-    def set_storyline_and_map(self, story, map_data):
-        """Receive AI-generated story and map, store them."""
+    def set_storyline(self, story):
+        """Receive AI-generated story."""
         self.storyline = story
-        self.map_data = map_data
         self.stage = "storyline"
 
+    def start_map_generation(self):
+        """After showing the story, generate the map."""
+        self.stage = "map_generating"  # Show "Generating Map..." message
+        generate_map_from_story(self.storyline, self.set_map_data)
+
+    def set_map_data(self, map_data):
+        """Receive AI-generated map data and transition to the game."""
+        self.map_data = map_data
+        self.start_game()  # Directly move to game when map is ready
+
     def start_game(self):
-        """Move to game stage with stored map data."""
+        """Move to game stage."""
         self.game_start = True
